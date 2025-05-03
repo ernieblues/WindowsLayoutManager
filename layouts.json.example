@@ -1,0 +1,12 @@
+[
+  {
+    "Path": "D:\\Example Folder",
+    "HWND": 123456,
+    "LocationName": "Example Folder",
+    "LocationURL": "file:///D:/Example%20Folder",
+    "Top": 100,
+    "Left": 100,
+    "Width": 800,
+    "Height": 600
+  }
+]

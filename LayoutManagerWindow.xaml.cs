@@ -1,23 +1,31 @@
-﻿using SHDocVw; // COM Reference: Microsoft Internet (InternetExplorer, ShellWindows)
-using Shell32; // COM Reference: Microsoft Shell Controls and Automation (Folder, FolderItem, etc.)
+﻿// System
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices; // COM Reference: Microsoft Shell Controls and Automation (COM interop e.g. GUIDs, interfaces)
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
+
+// COM Interop
+using SHDocVw; // COM Reference: Microsoft Internet (InternetExplorer, ShellWindows)
+using Shell32; // COM Reference: Microsoft Shell Controls and Automation (Folder, FolderItem, etc.)
 
 namespace WindowsLayoutManager
 {
     public partial class LayoutManagerWindow : Window
     {
+        // Declarations
+        public static List<ExplorerWindowInfo> layouts = new List<ExplorerWindowInfo>();
+
         // Constructor
         public LayoutManagerWindow()
         {
             InitializeComponent();
-            GetExplorerWindows();
-            GetExplorerPaths();
-            OpenWindows();
+            GetExplorerWindowsInfo();
+            SaveLayoutsToFile(layouts);
+            //OpenWindows();
+            //ShellWindowsCOMProperties.Run();
         }
 
         // ==================================================
@@ -31,87 +39,35 @@ namespace WindowsLayoutManager
         }
 
         // ==================================================
-        //               Win32 API Declarations
-        // ==================================================
-
-        // Delegate definition for EnumWindows callback
-        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-        // Enumerates all top-level windows on the screen
-        [DllImport("user32.dll")]
-        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
-
-        // Retrieves the title (caption) text of a window
-        [DllImport("user32.dll")]
-        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
-
-        // Checks if a window is visible
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
-
-        // Retrieves the bounding rectangle (position and size) of a window
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-
-        // Retrieves the class name of a window (e.g., "CabinetWClass")
-        [DllImport("user32.dll")]
-        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
-
-        // ==================================================
-        //                 Struct Definitions
-        // ==================================================
-
-        // Structure to hold the coordinates of a window rectangle
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        // ==================================================
         //             Explorer Window Management
         // ==================================================
 
-        // Enumerates all open visible Windows Explorer windows and displays their size and position.
-        private void GetExplorerWindows()
+        // Saves layouts to a JSON file
+        public static void SaveLayoutsToFile(List<ExplorerWindowInfo> layouts)
         {
-            EnumWindows((hWnd, lParam) =>
-            {
-                // Skip windows that aren't visible on the screen
-                if (!IsWindowVisible(hWnd))
-                    return true;
-
-                // Prepare to read the window's class name (e.g., "CabinetWClass" for Explorer)
-                StringBuilder className = new StringBuilder(32);
-                GetClassName(hWnd, className, className.Capacity);
-
-                // Check if this window is a Windows Explorer window
-                if (className.ToString().Contains("CabinetWClass"))
-                {
-                    // Get the window title text (usually the folder name or path)
-                    StringBuilder windowText = new StringBuilder(256);
-                    GetWindowText(hWnd, windowText, windowText.Capacity);
-
-                    // Get the window's size and position on the screen
-                    GetWindowRect(hWnd, out RECT rect);
-
-                    int width = rect.Right - rect.Left;
-                    int height = rect.Bottom - rect.Top;
-
-                    // Display the captured window information
-                    MessageBox.Show($"Explorer Window:\nTitle: {windowText}\nLocation: ({rect.Left},{rect.Top})\nSize: {width}x{height}");
-                }
-
-                // Continue enumerating remaining windows
-                return true;
-            }, IntPtr.Zero);
+            string json = JsonSerializer.Serialize(layouts, new JsonSerializerOptions { WriteIndented = true });
+            string outputPath = AppDomain.CurrentDomain.BaseDirectory;
+            string projectPath = Path.GetFullPath(Path.Combine(outputPath, @"..\..\..\"));
+            string filePath = Path.Combine(projectPath, "layouts.json");
+            File.WriteAllText(filePath, json);
         }
 
-        // Retrieves the folder paths from open Windows Explorer windows using Shell COM.
-        private void GetExplorerPaths()
+        // Safely retrieves a property value from a COM object using reflection.
+        // Returns default(T) if the property is missing or inaccessible.
+        private T TryGetComProp<T>(Type type, string propName, object target)
+        {
+            try
+            {
+                return (T)type.InvokeMember(propName, BindingFlags.GetProperty, null, target, null);
+            }
+            catch
+            {
+                return default(T); // null for ref types, 0 for int/long, etc.
+            }
+        }
+
+        // Retrieves information from open Windows Explorer windows using Shell COM.
+        private void GetExplorerWindowsInfo()
         {
             Shell shell = new Shell();
             ShellWindows windows = (ShellWindows)shell.Windows();
@@ -129,8 +85,20 @@ namespace WindowsLayoutManager
                 if (!string.Equals(Path.GetFileName(window.FullName), "explorer.exe", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                // Display the folder path of the Explorer window
-                MessageBox.Show($"Explorer Path: {window.Document.Folder.Self.Path}");
+                Type type = window.GetType();
+
+                // Store the captured window information
+                layouts.Add(new ExplorerWindowInfo
+                {
+                    Path = window.Document.Folder.Self.Path,
+                    HWND = TryGetComProp<long>(type, "HWND", window),
+                    LocationName = TryGetComProp<string>(type, "LocationName", window),
+                    LocationURL = TryGetComProp<string>(type, "LocationURL", window),
+                    Top = TryGetComProp<int>(type, "Top", window),
+                    Left = TryGetComProp<int>(type, "Left", window),
+                    Width = TryGetComProp<int>(type, "Width", window),
+                    Height = TryGetComProp<int>(type, "Height", window),
+                });
             }
         }
 
