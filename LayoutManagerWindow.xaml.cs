@@ -1,113 +1,73 @@
-﻿// System
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
-using System.Windows;
-
-// COM Interop
-using SHDocVw; // COM Reference: Microsoft Internet (InternetExplorer, ShellWindows)
-using Shell32; // COM Reference: Microsoft Shell Controls and Automation (Folder, FolderItem, etc.)
+﻿using System.Windows;
+using System.Windows.Controls;
 
 namespace WindowsLayoutManager
 {
     public partial class LayoutManagerWindow : Window
     {
-        // Declarations
-        public static List<ExplorerWindowInfo> layouts = new List<ExplorerWindowInfo>();
-
         // Constructor
         public LayoutManagerWindow()
         {
             InitializeComponent();
-            GetExplorerWindowsInfo();
-            SaveLayoutsToFile(layouts);
-            //OpenWindows();
-            //ShellWindowsCOMProperties.Run();
+            LayoutManager.layouts = LayoutManager.LoadLayoutsFromFile();
+            RefreshLayoutList();
         }
 
         // ==================================================
         //                   Event Handlers                  
         // ==================================================
 
-        // Test Button
-        private void ClickTestButton(object sender, RoutedEventArgs e)
+        // Deletes the selected layout from the list and saves changes
+        private void DeleteLayout_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Test Button Clicked!");
+            Layout selectedLayout = LayoutListView.SelectedItem as Layout;
+
+            if (selectedLayout == null)
+            {
+                MessageBox.Show("No layout selected.");
+                return;
+            }
+
+            var result = MessageBox.Show($"Are you sure you want to delete '{selectedLayout.LayoutName}'?",
+                                         "Confirm Delete", MessageBoxButton.YesNo);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                LayoutManager.layouts.Remove(selectedLayout);
+                LayoutManager.SaveLayoutsToFile(LayoutManager.layouts);
+                RefreshLayoutList();
+            }
+        }
+
+        // Enables the Restore button only when a layout is selected in the list
+        private void LayoutListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RestoreLayoutButton.IsEnabled = LayoutListView.SelectedItem != null;
+        }
+
+        // Restores the open windows to match the selected layout
+        private void RestoreLayout_Click(object sender, RoutedEventArgs e)
+        {
+            Layout selectedLayout = LayoutListView.SelectedItem as Layout;
+            LayoutManager.RestoreLayout(selectedLayout);
+        }
+
+        // Saves the current window layout with the specified name
+        private void SaveLayout_Click(object sender, RoutedEventArgs e)
+        {
+            LayoutManager.SaveLayout(LayoutNameInput.Text);
+            RefreshLayoutList();
         }
 
         // ==================================================
-        //             Explorer Window Management
+        //                Layout List Handling
         // ==================================================
 
-        // Saves layouts to a JSON file
-        public static void SaveLayoutsToFile(List<ExplorerWindowInfo> layouts)
+        // Reloads the layout list to reflect any changes
+        private void RefreshLayoutList()
         {
-            string json = JsonSerializer.Serialize(layouts, new JsonSerializerOptions { WriteIndented = true });
-            string outputPath = AppDomain.CurrentDomain.BaseDirectory;
-            string projectPath = Path.GetFullPath(Path.Combine(outputPath, @"..\..\..\"));
-            string filePath = Path.Combine(projectPath, "layouts.json");
-            File.WriteAllText(filePath, json);
-        }
-
-        // Safely retrieves a property value from a COM object using reflection.
-        // Returns default(T) if the property is missing or inaccessible.
-        private T TryGetComProp<T>(Type type, string propName, object target)
-        {
-            try
-            {
-                return (T)type.InvokeMember(propName, BindingFlags.GetProperty, null, target, null);
-            }
-            catch
-            {
-                return default(T); // null for ref types, 0 for int/long, etc.
-            }
-        }
-
-        // Retrieves information from open Windows Explorer windows using Shell COM.
-        private void GetExplorerWindowsInfo()
-        {
-            Shell shell = new Shell();
-            ShellWindows windows = (ShellWindows)shell.Windows();
-
-            // Display the number of Shell windows found
-            MessageBox.Show("Shell windows found: " + windows.Count.ToString());
-
-            foreach (InternetExplorer window in windows)
-            {
-                // Protect against null references (COM sometimes gives garbage)
-                if (window == null)
-                    continue;
-
-                // Make sure this is a Windows Explorer window, not browser or other application
-                if (!string.Equals(Path.GetFileName(window.FullName), "explorer.exe", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                Type type = window.GetType();
-
-                // Store the captured window information
-                layouts.Add(new ExplorerWindowInfo
-                {
-                    Path = window.Document.Folder.Self.Path,
-                    HWND = TryGetComProp<long>(type, "HWND", window),
-                    LocationName = TryGetComProp<string>(type, "LocationName", window),
-                    LocationURL = TryGetComProp<string>(type, "LocationURL", window),
-                    Top = TryGetComProp<int>(type, "Top", window),
-                    Left = TryGetComProp<int>(type, "Left", window),
-                    Width = TryGetComProp<int>(type, "Width", window),
-                    Height = TryGetComProp<int>(type, "Height", window),
-                });
-            }
-        }
-
-        // Opens a test Explorer window at a specified path.
-        private void OpenWindows()
-        {
-            // Get the current user's Documents folder path (e.g., C:\Users\YourName\Documents)
-            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            Process.Start("explorer.exe", documentsPath);
+            LayoutListView.ItemsSource = null;
+            LayoutListView.ItemsSource = LayoutManager.layouts;
         }
     }
 }
