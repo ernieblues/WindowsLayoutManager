@@ -1,40 +1,76 @@
 ﻿<Window x:Class="WindowsLayoutManager.LayoutManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WindowsLayoutManager"
-        mc:Ignorable="d"
-        Title="LayoutManagerWindow" Height="450" Width="800">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <!-- Left: buttons -->
-            <ColumnDefinition Width="200"/>
-            <!-- Right: main content -->
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        Title="LayoutManagerWindow"
+        Height="450"
+        Width="800">
 
-        <!-- Left: controls -->
-        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="10, 10, 10, 10">
-            <Label Content="Layout Name:"/>
-            <TextBox x:Name="LayoutNameInput" Height="25" VerticalContentAlignment="Center"/>
-            <Button Content="Save Layout" Height="25" Margin="0,10,0,0" Click="SaveLayout_Click"/>
-            <Button Content="Delete Layout" Height="25" Margin="0,10,0,0" Click="DeleteLayout_Click"/>
-            <Button x:Name="RestoreLayoutButton" Content="Restore Layout" Height="25" Margin="0,10,0,0" Click="RestoreLayout_Click"  IsEnabled="False"/>
-        </StackPanel>
+    <Grid Background="#F0F8FF">
+        <Grid.RowDefinitions>
+            <!-- Header -->
+            <RowDefinition Height="80"/>
+            <!-- Main content -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- Right: list of layouts -->
-        <ListView x:Name="LayoutListView" SelectionMode="Single" Grid.Column="1" Margin="0,10,10,10" SelectionChanged="LayoutListView_SelectionChanged">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="Layout Name" Width="200"
-                            DisplayMemberBinding="{Binding LayoutName}" />
-                    <GridViewColumn Header="Window Count" Width="100"
-                            DisplayMemberBinding="{Binding Windows.Count}" />
-                    <GridViewColumn Header="Saved On" Width="150"
-                            DisplayMemberBinding="{Binding LayoutDate}" />
-                </GridView>
-            </ListView.View>
-        </ListView>
+        <!-- Header -->
+        <Grid x:Name="HeaderArea" Grid.Row="0" Background="Transparent" PreviewMouseDown="HeaderArea_PreviewMouseDown">
+            <Label Content="Windows Layout Manager"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontWeight="Bold"
+                   FontSize="20"/>
+        </Grid>
+
+        <!-- Main content wrapped in a Border -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- Left: buttons -->
+                <ColumnDefinition Width="200"/>
+                <!-- Right: list view -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left column: StackPanel with controls -->
+            <Border Grid.Column="0" Background="#F7FAFC" BorderBrush="Gray" BorderThickness="1" CornerRadius="2" Margin="10,0,10,10">
+                <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="10">
+                    <Label Content="Layout Name"/>
+                    <TextBox x:Name="LayoutNameInput" Height="25" VerticalContentAlignment="Center" TextChanged="LayoutNameInput_TextChanged" GotFocus="LayoutNameInput_GotFocus"/>
+                    <Button x:Name="SaveLayoutButton" Content="Save Layout" Height="25" Margin="0,10,0,0" Click="SaveLayout_Click" IsEnabled="False"/>
+                    <Button x:Name="DeleteLayoutButton" Content="Delete Layout" Height="25" Margin="0,10,0,0" Click="DeleteLayout_Click" IsEnabled="False"/>
+                    <Button x:Name="RestoreLayoutButton" Content="Restore Layout" Height="25" Margin="0,10,0,0" Click="RestoreLayout_Click" IsEnabled="False"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Right column: ListView -->
+            <Border Grid.Column="1" Background="#F7FAFC" BorderBrush="Gray" BorderThickness="1" CornerRadius="2" Margin="0,0,10,10">
+                <ListView x:Name="LayoutListView" SelectionMode="Single" BorderThickness="0" Background="Transparent" Margin="0,10,10,10" SelectionChanged="LayoutListView_SelectionChanged">
+                    <ListView.View>
+                        <GridView>
+                            <!-- Layout Name -->
+                            <GridViewColumn Width="200" DisplayMemberBinding="{Binding LayoutName}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Layout Name" Tag="LayoutName" Click="ColumnHeader_Click" />
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <!-- Window Count -->
+                            <GridViewColumn Width="100" DisplayMemberBinding="{Binding WindowCount}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Window Count" Tag="WindowCount" Click="ColumnHeader_Click" />
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <!-- Saved On -->
+                            <GridViewColumn Width="150" DisplayMemberBinding="{Binding LayoutDate}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Layout Date" Tag="LayoutDate" Click="ColumnHeader_Click" />
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

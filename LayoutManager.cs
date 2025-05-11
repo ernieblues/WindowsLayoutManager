@@ -4,6 +4,8 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Windows;
+
 
 // COM Interop
 using SHDocVw; // COM Reference: Microsoft Internet (InternetExplorer, ShellWindows)
@@ -151,11 +153,24 @@ public static class LayoutManager
         Thread.Sleep(1000); // Wait for new Explorer windows to fully open before scanning
         openWindows = GetWindowsInfo();
 
-        // Move and resize all windows in the layout
+        // Match layout windows to live windows by path, and move them using fresh HWNDs
         foreach (WindowInfo layoutWindow in selectedLayout.Windows)
         {
-            MoveResizeWindow(layoutWindow);
+            var liveWindow = openWindows.FirstOrDefault(w =>
+                w.Path.Equals(layoutWindow.Path, StringComparison.OrdinalIgnoreCase));
+
+            if (liveWindow != null)
+            {
+                // Use the saved layout's position, but the live window's current handle
+                liveWindow.Left = layoutWindow.Left;
+                liveWindow.Top = layoutWindow.Top;
+                liveWindow.Width = layoutWindow.Width;
+                liveWindow.Height = layoutWindow.Height;
+
+                MoveResizeWindow(liveWindow);
+            }
         }
+
     }
 
     // Creates a layout with the specified name.
@@ -175,14 +190,22 @@ public static class LayoutManager
 
         if (existingLayout != null)
         {
-            // Overwrite the existing layout
+            var result = MessageBox.Show(
+                $"A layout named '{layoutName}' already exists.\nDo you want to overwrite it?",
+                "Confirm Overwrite",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            // Overwrite it
             existingLayout.LayoutDate = currentLayout.LayoutDate;
             existingLayout.Windows = currentLayout.Windows;
             existingLayout.Applications = currentLayout.Applications;
         }
         else
         {
-            // Add the current layout to the list of layouts
             layouts.Add(currentLayout);
         }
 

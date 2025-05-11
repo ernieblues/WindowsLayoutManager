@@ -1,12 +1,47 @@
 [
   {
-    "Path": "D:\\Example Folder",
-    "HWND": 123456,
-    "LocationName": "Example Folder",
-    "LocationURL": "file:///D:/Example%20Folder",
-    "Top": 100,
-    "Left": 100,
-    "Width": 800,
-    "Height": 600
+    "LayoutName": "Example Layout 1",
+    "LayoutDate": "2025-01-01T10:00:00-04:00",
+    "Windows": [
+      {
+        "Path": "C:\\Example\\Project1",
+        "LocationName": "Project1",
+        "LocationURL": "file:///C:/Example/Project1",
+        "Left": 100,
+        "Top": 100,
+        "Width": 800,
+        "Height": 600
+      },
+      {
+        "Path": "C:\\Example\\Project2",
+        "LocationName": "Project2",
+        "LocationURL": "file:///C:/Example/Project2",
+        "Left": 950,
+        "Top": 100,
+        "Width": 800,
+        "Height": 600
+      }
+    ],
+    "Applications": [],
+    "WindowCount": 2,
+    "ApplicationCount": 0
+  },
+  {
+    "LayoutName": "Example Layout 2",
+    "LayoutDate": "2025-01-02T14:30:00-04:00",
+    "Windows": [
+      {
+        "Path": "C:\\Example\\Docs",
+        "LocationName": "Docs",
+        "LocationURL": "file:///C:/Example/Docs",
+        "Left": 100,
+        "Top": 200,
+        "Width": 600,
+        "Height": 500
+      }
+    ],
+    "Applications": [],
+    "WindowCount": 1,
+    "ApplicationCount": 0
   }
 ]

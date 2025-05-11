@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 // Layout of applications and windows.
 public class Layout
 {
@@ -5,13 +7,18 @@ public class Layout
     public DateTime LayoutDate { get; set; } = DateTime.Now;
     public List<WindowInfo> Windows { get; set; } = new();
     public List<ApplicationInfo> Applications { get; set; } = new();
+    public int WindowCount => Windows.Count;
+    public int ApplicationCount => Applications.Count;
 }
 
 // Explorer windows information.
 public class WindowInfo
 {
     public string Path { get; set; }
+    
+    [JsonIgnore]
     public long HWnd { get; set; }
+    
     public string LocationName { get; set; }
     public string LocationURL { get; set; }
     public int Left { get; set; }

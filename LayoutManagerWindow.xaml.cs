@@ -1,11 +1,26 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 
 namespace WindowsLayoutManager
 {
     public partial class LayoutManagerWindow : Window
     {
-        // Constructor
+        // ==================================================
+        //                    Declarations
+        // ==================================================
+
+        // Last clicked column header for sorting
+        private GridViewColumnHeader lastHeaderClicked = null;
+
+        // Sort direction (ascending or descending)
+        private ListSortDirection lastDirection = ListSortDirection.Ascending;
+
+        // ==================================================
+        //                     Constructor                  
+        // ==================================================
         public LayoutManagerWindow()
         {
             InitializeComponent();
@@ -16,6 +31,36 @@ namespace WindowsLayoutManager
         // ==================================================
         //                   Event Handlers                  
         // ==================================================
+
+        // Sorts the list by the clicked column, toggling direction each time.
+        private void ColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var header = sender as GridViewColumnHeader;
+            if (header?.Tag == null)
+                return;
+
+            string propertyName = header.Tag.ToString();
+
+            ListSortDirection direction;
+            if (header == lastHeaderClicked)
+            {
+                direction = lastDirection == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
+                    : ListSortDirection.Ascending;
+            }
+            else
+            {
+                direction = ListSortDirection.Ascending;
+            }
+
+            ICollectionView view = CollectionViewSource.GetDefaultView(LayoutListView.ItemsSource);
+            view.SortDescriptions.Clear();
+            view.SortDescriptions.Add(new SortDescription(propertyName, direction));
+            view.Refresh();
+
+            lastHeaderClicked = header;
+            lastDirection = direction;
+        }
 
         // Deletes the selected layout from the list and saves changes
         private void DeleteLayout_Click(object sender, RoutedEventArgs e)
@@ -39,10 +84,34 @@ namespace WindowsLayoutManager
             }
         }
 
-        // Enables the Restore button only when a layout is selected in the list
+        // Deselects the ListView when clicking outside of it.
+        private void LayoutNameInput_GotFocus(object sender, RoutedEventArgs e)
+        {
+            LayoutListView.SelectedItem = null;
+        }
+
+        // Clears the selected layout and disables related buttons when the header is clicked
+        private void HeaderArea_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            LayoutListView.SelectedItem = null;
+        }
+
+        // Enables the Save Layout button only when the Layout Name Input is populated
+        private void LayoutNameInput_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            SaveLayoutButton.IsEnabled = !string.IsNullOrWhiteSpace(LayoutNameInput.Text);
+        }
+
+        // Enables the Delete Layout and Restore Layout buttons only when a layout is selected in the list
         private void LayoutListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            DeleteLayoutButton.IsEnabled = LayoutListView.SelectedItem != null;
             RestoreLayoutButton.IsEnabled = LayoutListView.SelectedItem != null;
+
+            if (LayoutListView.SelectedItem is Layout selectedLayout)
+            {
+                LayoutNameInput.Text = selectedLayout.LayoutName;
+            }
         }
 
         // Restores the open windows to match the selected layout
